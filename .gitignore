@@ -128,7 +128,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Application specific files
+# Application specific files (stored in Documents folder)
 db_operations_history.json
 db_manager_settings.json
 *.sql

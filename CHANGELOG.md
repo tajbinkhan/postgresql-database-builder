@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced error logging
 
 ### Changed
+- **Application data storage**: All application files (history, settings) now saved in Documents folder for better user experience
 - Improved PostgreSQL detection algorithm
 - Better connection string validation
 

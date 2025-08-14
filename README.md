@@ -150,15 +150,23 @@ The executable will be created in the `dist/` folder with administrator privileg
 
 ## ⚙️ Configuration
 
+### Application Data Location
+All application data is stored in your Documents folder:
+```
+📁 Documents/PostgreSQL Database Manager/
+├── db_manager_settings.json    # User preferences and settings
+└── db_operations_history.json  # Operation history and logs
+```
+
 ### Settings File
-The application creates `db_manager_settings.json` to store:
+The application creates `db_manager_settings.json` in the Documents folder to store:
 - Default connection strings
 - Preferred save locations
 - UI preferences
 - Font settings
 
 ### History File
-Operation history is stored in `db_operations_history.json`:
+Operation history is stored in `db_operations_history.json` in the Documents folder:
 - Operation timestamps
 - Connection details (sanitized)
 - File paths and sizes

@@ -21,6 +21,139 @@ ctk.set_appearance_mode("dark")  # "system", "dark", or "light"
 ctk.set_default_color_theme("blue")  # "blue", "green", or "dark-blue"
 
 
+class ScrollableErrorDialog:
+    """Custom scrollable error dialog with maximum width"""
+
+    def __init__(
+        self,
+        parent,
+        title="Error",
+        message="An error occurred",
+        max_width=800,
+        max_height=600,
+    ):
+        self.parent = parent
+        self.result = None
+
+        # Create toplevel window
+        self.dialog = ctk.CTkToplevel(parent)
+        self.dialog.title(title)
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+
+        # Calculate dialog size based on content
+        message_lines = message.count("\n") + 1
+        estimated_height = min(max_height, max(300, message_lines * 25 + 200))
+        estimated_width = min(max_width, max(500, min(len(message) * 7, 800)))
+
+        dialog_width = estimated_width
+        dialog_height = estimated_height
+
+        # Center the dialog on parent window
+        parent_x = parent.winfo_rootx()
+        parent_y = parent.winfo_rooty()
+        parent_width = parent.winfo_width()
+        parent_height = parent.winfo_height()
+
+        x = parent_x + (parent_width - dialog_width) // 2
+        y = parent_y + (parent_height - dialog_height) // 2
+
+        self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+        self.dialog.resizable(True, True)
+        self.dialog.minsize(300, 150)
+
+        # Configure grid
+        self.dialog.grid_columnconfigure(0, weight=1)
+        self.dialog.grid_rowconfigure(1, weight=1)
+
+        # Error icon and title frame
+        title_frame = ctk.CTkFrame(self.dialog)
+        title_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
+        title_frame.grid_columnconfigure(1, weight=1)
+
+        # Error icon
+        error_label = ctk.CTkLabel(title_frame, text="❌", font=ctk.CTkFont(size=24))
+        error_label.grid(row=0, column=0, padx=(10, 0), pady=10)
+
+        # Title label
+        title_label = ctk.CTkLabel(
+            title_frame, text=title, font=ctk.CTkFont(size=16, weight="bold")
+        )
+        title_label.grid(row=0, column=1, padx=(10, 10), pady=10, sticky="w")
+
+        # Scrollable text frame
+        text_frame = ctk.CTkScrollableFrame(self.dialog)
+        text_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 10))
+        text_frame.grid_columnconfigure(0, weight=1)
+
+        # Message text with better formatting
+        # Split very long lines for better readability
+        formatted_message = message
+        if len(message) > 1000:
+            # For very long messages, add line breaks at reasonable points
+            lines = message.split("\n")
+            formatted_lines = []
+            for line in lines:
+                if len(line) > 80:
+                    # Break long lines at word boundaries
+                    words = line.split(" ")
+                    current_line = ""
+                    for word in words:
+                        if len(current_line + word) > 80:
+                            if current_line:
+                                formatted_lines.append(current_line.strip())
+                                current_line = word + " "
+                        else:
+                            current_line += word + " "
+                    if current_line:
+                        formatted_lines.append(current_line.strip())
+                else:
+                    formatted_lines.append(line)
+            formatted_message = "\n".join(formatted_lines)
+
+        message_label = ctk.CTkLabel(
+            text_frame,
+            text=formatted_message,
+            font=ctk.CTkFont(size=12),
+            justify="left",
+            wraplength=dialog_width - 80,
+        )
+        message_label.grid(row=0, column=0, sticky="w", padx=10, pady=10)
+
+        # Button frame
+        button_frame = ctk.CTkFrame(self.dialog)
+        button_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 20))
+        button_frame.grid_columnconfigure(0, weight=1)
+
+        # OK button
+        ok_button = ctk.CTkButton(
+            button_frame, text="OK", command=self.ok_clicked, width=100
+        )
+        ok_button.grid(row=0, column=0, pady=10)
+
+        # Bind escape key and window close
+        self.dialog.bind("<Escape>", lambda e: self.ok_clicked())
+        self.dialog.protocol("WM_DELETE_WINDOW", self.ok_clicked)
+
+        # Focus on OK button
+        ok_button.focus()
+
+    def ok_clicked(self):
+        self.result = "ok"
+        self.dialog.destroy()
+
+    def show(self):
+        """Show the dialog and wait for user response"""
+        self.dialog.wait_window()
+        return self.result
+
+
+def show_error_dialog(parent, title="Error", message="An error occurred"):
+    """Helper function to show scrollable error dialog"""
+    dialog = ScrollableErrorDialog(parent, title, message)
+    return dialog.show()
+
+
 class PostgreSQLChecker:
     """Handles PostgreSQL installation verification and environment setup"""
 
@@ -223,6 +356,8 @@ class PostgreSQLChecker:
             message += "🌐 https://www.postgresql.org/download/\n\n"
             message += "Make sure to include command line tools during installation."
 
+            # Note: Using messagebox here as this is called from PostgreSQLChecker
+            # which doesn't have access to the main window
             messagebox.showerror("PostgreSQL Not Found", message)
             return False
 
@@ -372,9 +507,20 @@ class ModernDatabaseManager:
         # Default save location (Desktop)
         self.save_location = os.path.join(os.path.expanduser("~"), "Desktop")
 
-        # History file path
-        self.history_file = "db_operations_history.json"
-        self.settings_file = "db_manager_settings.json"
+        # Application data directory (Documents folder)
+        self.app_data_dir = os.path.join(
+            os.path.expanduser("~"), "Documents", "PostgreSQL Database Manager"
+        )
+
+        # Create application data directory if it doesn't exist
+        if not os.path.exists(self.app_data_dir):
+            os.makedirs(self.app_data_dir)
+
+        # History and settings file paths in Documents folder
+        self.history_file = os.path.join(
+            self.app_data_dir, "db_operations_history.json"
+        )
+        self.settings_file = os.path.join(self.app_data_dir, "db_manager_settings.json")
         self.load_history()
         self.load_settings()
 
@@ -393,6 +539,10 @@ class ModernDatabaseManager:
             return ctk.CTkFont(family=self.font_family, size=size, weight="bold")
         else:
             return ctk.CTkFont(family=self.font_family, size=size, weight="normal")
+
+    def get_app_data_directory(self):
+        """Get the application data directory path"""
+        return self.app_data_dir
 
     def check_postgresql_on_startup(self):
         """Check PostgreSQL installation on application startup"""
@@ -1186,7 +1336,8 @@ class ModernDatabaseManager:
                     self.add_to_history(
                         "BACKUP", f"Failed: {error_msg[:100]}...", "", source_db
                     )
-                    messagebox.showerror(
+                    show_error_dialog(
+                        self.root,
                         "Backup Failed",
                         f"❌ Backup operation failed!\n\nError details:\n{error_msg}",
                     )
@@ -1195,12 +1346,12 @@ class ModernDatabaseManager:
                 error_msg = "pg_dump not found. Please ensure PostgreSQL is installed and added to PATH."
                 self.status_var.set("❌ pg_dump not found")
                 self.add_to_history("BACKUP", f"Error: {error_msg}", "", source_db)
-                messagebox.showerror("Error", f"❌ {error_msg}")
+                show_error_dialog(self.root, "Error", f"❌ {error_msg}")
             except Exception as e:
                 error_msg = f"Unexpected error: {str(e)}"
                 self.status_var.set("❌ Backup failed!")
                 self.add_to_history("BACKUP", f"Error: {error_msg}", "", source_db)
-                messagebox.showerror("Error", f"❌ {error_msg}")
+                show_error_dialog(self.root, "Error", f"❌ {error_msg}")
             finally:
                 self.progress_bar.stop()
                 self.progress_bar.set(0)
@@ -1314,7 +1465,8 @@ class ModernDatabaseManager:
                     self.add_to_history(
                         "RESTORE", f"Failed: {error_msg[:100]}...", dump_file, target_db
                     )
-                    messagebox.showerror(
+                    show_error_dialog(
+                        self.root,
                         "Restore Failed",
                         f"❌ Restore operation failed!\n\nError details:\n{error_msg}",
                     )
@@ -1325,14 +1477,14 @@ class ModernDatabaseManager:
                 self.add_to_history(
                     "RESTORE", f"Error: {error_msg}", dump_file, target_db
                 )
-                messagebox.showerror("Error", f"❌ {error_msg}")
+                show_error_dialog(self.root, "Error", f"❌ {error_msg}")
             except Exception as e:
                 error_msg = f"Unexpected error: {str(e)}"
                 self.status_var.set("❌ Restore failed!")
                 self.add_to_history(
                     "RESTORE", f"Error: {error_msg}", dump_file, target_db
                 )
-                messagebox.showerror("Error", f"❌ {error_msg}")
+                show_error_dialog(self.root, "Error", f"❌ {error_msg}")
             finally:
                 self.progress_bar.stop()
                 self.progress_bar.set(0)
@@ -1453,6 +1605,11 @@ class ModernDatabaseManager:
 
 def main():
     app = ModernDatabaseManager()
+
+    # Print application data directory information
+    print(f"📁 Application data directory: {app.get_app_data_directory()}")
+    print("💾 History and settings will be saved in Documents folder")
+
     app.root.mainloop()
 
 

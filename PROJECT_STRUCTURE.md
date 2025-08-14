@@ -62,8 +62,11 @@ postgresql-database-manager/
 - **`dist/`** - Built executable files
 - **`build/`** - Temporary build files
 - **`__pycache__/`** - Python bytecode cache
-- **`db_operations_history.json`** - User operation history
-- **`db_manager_settings.json`** - User preferences
+
+### User Data Files (Saved in Documents)
+The following files are created in `Documents/PostgreSQL Database Manager/`:
+- **`db_operations_history.json`** - User operation history and logs
+- **`db_manager_settings.json`** - User preferences and application settings
 
 ## Development Workflow
 
