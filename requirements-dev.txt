@@ -1,0 +1,6 @@
+# Development dependencies
+pyinstaller>=6.0.0
+black>=23.0.0
+flake8>=6.0.0
+pytest>=7.0.0
+pytest-gui>=0.3.0
