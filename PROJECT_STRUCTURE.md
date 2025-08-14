@@ -23,13 +23,17 @@ postgresql-database-manager/
 ├── 📄 app.manifest                 # Windows UAC manifest
 ├── 📄 build.bat                    # Windows batch build script
 ├── 📄 build_exe.py                 # Executable builder script
+├── 📄 BUILD_GUIDE.md               # Comprehensive build system documentation
 ├── 📄 CHANGELOG.md                 # Version history and changes
 ├── 📄 CONTRIBUTING.md              # Contribution guidelines
 ├── 📄 db_manager.py                # Main application file
+├── 📄 DEPLOYMENT.md                # Production deployment and distribution guide
+├── 📄 install_upx.bat              # UPX compressor installer script
 ├── 📄 LICENSE                      # MIT License
 ├── 📄 README.md                    # Main project documentation
 ├── 📄 requirements.txt             # Python dependencies
 ├── 📄 requirements-dev.txt         # Development dependencies
+├── 📄 upx.exe                      # UPX compressor (if installed)
 └── 📄 PROJECT_STRUCTURE.md         # This file
 
 ```
@@ -39,13 +43,18 @@ postgresql-database-manager/
 ### Core Application Files
 - **`db_manager.py`** - Main application with GUI and database operations
 - **`app.manifest`** - Windows manifest for administrator privileges
-- **`build_exe.py`** - Script to build standalone executable
+- **`build_exe.py`** - Script to build standalone executable with optimization
 - **`build.bat`** - Windows batch file for easy building
+- **`install_upx.bat`** - Automated UPX compressor installer
+- **`upx.exe`** - UPX compressor for executable compression (if installed)
 
 ### Documentation Files
-- **`README.md`** - Comprehensive project documentation
+- **`README.md`** - Comprehensive project documentation with build guide
+- **`BUILD_GUIDE.md`** - Detailed build system and optimization documentation
+- **`DEPLOYMENT.md`** - Production deployment and distribution guide
 - **`CHANGELOG.md`** - Version history and feature tracking
 - **`CONTRIBUTING.md`** - Guidelines for contributors
+- **`PROJECT_STRUCTURE.md`** - This file - project organization overview
 - **`LICENSE`** - MIT License text
 
 ### Configuration Files
