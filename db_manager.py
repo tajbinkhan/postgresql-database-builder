@@ -6,6 +6,8 @@ import threading
 from datetime import datetime
 import json
 import platform
+import tkinter.font as tkfont
+from pathlib import Path
 
 # Platform-specific imports
 if platform.system() == "Windows":
@@ -31,9 +33,11 @@ class ScrollableErrorDialog:
         message="An error occurred",
         max_width=800,
         max_height=600,
+        font_family="Poppins",
     ):
         self.parent = parent
         self.result = None
+        self.font_family = font_family
 
         # Create toplevel window
         self.dialog = ctk.CTkToplevel(parent)
@@ -72,12 +76,16 @@ class ScrollableErrorDialog:
         title_frame.grid_columnconfigure(1, weight=1)
 
         # Error icon
-        error_label = ctk.CTkLabel(title_frame, text="❌", font=ctk.CTkFont(size=24))
+        error_label = ctk.CTkLabel(
+            title_frame, text="❌", font=ctk.CTkFont(family=self.font_family, size=24)
+        )
         error_label.grid(row=0, column=0, padx=(10, 0), pady=10)
 
         # Title label
         title_label = ctk.CTkLabel(
-            title_frame, text=title, font=ctk.CTkFont(size=16, weight="bold")
+            title_frame,
+            text=title,
+            font=ctk.CTkFont(family=self.font_family, size=16, weight="bold"),
         )
         title_label.grid(row=0, column=1, padx=(10, 10), pady=10, sticky="w")
 
@@ -114,7 +122,7 @@ class ScrollableErrorDialog:
         message_label = ctk.CTkLabel(
             text_frame,
             text=formatted_message,
-            font=ctk.CTkFont(size=12),
+            font=ctk.CTkFont(family=self.font_family, size=12),
             justify="left",
             wraplength=dialog_width - 80,
         )
@@ -127,7 +135,11 @@ class ScrollableErrorDialog:
 
         # OK button
         ok_button = ctk.CTkButton(
-            button_frame, text="OK", command=self.ok_clicked, width=100
+            button_frame,
+            text="OK",
+            command=self.ok_clicked,
+            width=100,
+            font=ctk.CTkFont(family=self.font_family, size=12),
         )
         ok_button.grid(row=0, column=0, pady=10)
 
@@ -148,9 +160,11 @@ class ScrollableErrorDialog:
         return self.result
 
 
-def show_error_dialog(parent, title="Error", message="An error occurred"):
+def show_error_dialog(
+    parent, title="Error", message="An error occurred", font_family="Poppins"
+):
     """Helper function to show scrollable error dialog"""
-    dialog = ScrollableErrorDialog(parent, title, message)
+    dialog = ScrollableErrorDialog(parent, title, message, font_family=font_family)
     return dialog.show()
 
 
@@ -424,11 +438,24 @@ Then run: source ~/.bashrc"""
 
 
 class FontManager:
-    """Handles Google Fonts integration with fallback options"""
+    """Handles local and system font integration with fallback options"""
 
     def __init__(self):
+        self.app_root = Path(__file__).parent
+        self.fonts_dir = self.app_root / "fonts"
+
+        # Font files to look for in the fonts directory
+        self.font_files = {
+            "Poppins": [
+                "Poppins-Regular.ttf",
+                "Poppins-Medium.ttf",
+                "Poppins-SemiBold.ttf",
+                "Poppins-Bold.ttf",
+            ]
+        }
+
         self.preferred_fonts = [
-            "Poppins",  # Primary choice (Google Font)
+            "Poppins",  # Primary choice (will be loaded from local folder)
             "Inter",  # Modern alternative
             "Segoe UI",  # Windows default
             "SF Pro Display",  # macOS default
@@ -438,13 +465,133 @@ class FontManager:
             "Arial",  # Universal fallback
             "sans-serif",  # Ultimate fallback
         ]
+
+        # Load local fonts first
+        self.load_local_fonts()
+
+        # Then find the best available font
         self.selected_font = self.get_best_available_font()
+
+    def load_local_fonts(self):
+        """Load fonts from the local fonts directory"""
+        if not self.fonts_dir.exists():
+            print(f"Fonts directory not found: {self.fonts_dir}")
+            return
+
+        try:
+            if platform.system() == "Windows":
+                self._load_fonts_windows()
+            elif platform.system() == "Darwin":  # macOS
+                self._load_fonts_macos()
+            else:  # Linux
+                self._load_fonts_linux()
+
+        except Exception as e:
+            print(f"Error loading local fonts: {e}")
+
+    def _load_fonts_windows(self):
+        """Load fonts on Windows using Windows API"""
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            # Windows API constants
+            FR_PRIVATE = 0x10
+
+            # Load AddFontResourceEx function
+            gdi32 = ctypes.windll.gdi32
+            add_font_resource_ex = gdi32.AddFontResourceExW
+            add_font_resource_ex.argtypes = [
+                wintypes.LPCWSTR,
+                wintypes.DWORD,
+                ctypes.c_void_p,
+            ]
+            add_font_resource_ex.restype = ctypes.c_int
+
+            loaded_fonts = []
+            for font_family, font_files in self.font_files.items():
+                for font_file in font_files:
+                    font_path = self.fonts_dir / font_file
+                    if font_path.exists():
+                        result = add_font_resource_ex(str(font_path), FR_PRIVATE, None)
+                        if result > 0:
+                            loaded_fonts.append(font_file)
+                            print(f"✅ Loaded font: {font_file}")
+                        else:
+                            print(f"❌ Failed to load font: {font_file}")
+
+            if loaded_fonts:
+                print(f"Successfully loaded {len(loaded_fonts)} font files")
+
+        except Exception as e:
+            print(f"Windows font loading error: {e}")
+
+    def _load_fonts_macos(self):
+        """Load fonts on macOS using Core Text"""
+        try:
+            import ctypes
+            import ctypes.util
+
+            # Load Core Text framework
+            core_text_path = ctypes.util.find_library("CoreText")
+            core_foundation_path = ctypes.util.find_library("CoreFoundation")
+
+            if core_text_path and core_foundation_path:
+                core_text = ctypes.cdll.LoadLibrary(core_text_path)
+                core_foundation = ctypes.cdll.LoadLibrary(core_foundation_path)
+
+                loaded_fonts = []
+                for font_family, font_files in self.font_files.items():
+                    for font_file in font_files:
+                        font_path = self.fonts_dir / font_file
+                        if font_path.exists():
+                            # This is a simplified approach - you might need more complex CTFont registration
+                            loaded_fonts.append(font_file)
+                            print(f"✅ Font available: {font_file}")
+
+                if loaded_fonts:
+                    print(f"Font files found: {len(loaded_fonts)}")
+            else:
+                print("Core Text or Core Foundation framework not found")
+
+        except Exception as e:
+            print(f"macOS font loading error: {e}")
+
+    def _load_fonts_linux(self):
+        """Load fonts on Linux using fontconfig"""
+        try:
+            import subprocess
+
+            # Create fontconfig directory if it doesn't exist
+            fontconfig_dir = Path.home() / ".local/share/fonts"
+            fontconfig_dir.mkdir(parents=True, exist_ok=True)
+
+            loaded_fonts = []
+            for font_family, font_files in self.font_files.items():
+                for font_file in font_files:
+                    font_path = self.fonts_dir / font_file
+                    if font_path.exists():
+                        # Copy font to user fonts directory
+                        target_path = fontconfig_dir / font_file
+                        if not target_path.exists():
+                            import shutil
+
+                            shutil.copy2(font_path, target_path)
+                        loaded_fonts.append(font_file)
+                        print(f"✅ Font available: {font_file}")
+
+            if loaded_fonts:
+                # Refresh font cache
+                subprocess.run(["fc-cache", "-fv"], capture_output=True)
+                print(f"Font files processed: {len(loaded_fonts)}")
+
+        except Exception as e:
+            print(f"Linux font loading error: {e}")
 
     def get_best_available_font(self):
         """Get the best available font family from our preferred list"""
         try:
             import tkinter as tk
-            import tkinter.font as tkfont
 
             root = tk.Tk()
             root.withdraw()  # Hide the window
@@ -482,6 +629,46 @@ class FontManager:
         """Get the selected font family"""
         return self.selected_font
 
+    def get_font_path(self, font_file):
+        """Get the path to a specific font file"""
+        return self.fonts_dir / font_file
+
+    def check_local_fonts_available(self):
+        """Check if local Poppins fonts are available"""
+        if not self.fonts_dir.exists():
+            return False
+
+        for font_family, font_files in self.font_files.items():
+            for font_file in font_files:
+                if (self.fonts_dir / font_file).exists():
+                    return True
+        return False
+
+    def get_font(self, size=12, weight="normal"):
+        """Get a CTkFont with the selected font family"""
+        valid_weight = "bold" if weight == "bold" else "normal"
+        return ctk.CTkFont(family=self.selected_font, size=size, weight=valid_weight)
+
+    def get_title_font(self, size=16):
+        """Get a bold title font"""
+        return ctk.CTkFont(family=self.selected_font, size=size, weight="bold")
+
+    def get_heading_font(self, size=14):
+        """Get a medium weight heading font"""
+        return ctk.CTkFont(family=self.selected_font, size=size, weight="bold")
+
+    def get_body_font(self, size=12):
+        """Get a regular body text font"""
+        return ctk.CTkFont(family=self.selected_font, size=size, weight="normal")
+
+    def get_small_font(self, size=10):
+        """Get a small text font"""
+        return ctk.CTkFont(family=self.selected_font, size=size, weight="normal")
+
+    def get_button_font(self, size=12):
+        """Get a button font"""
+        return ctk.CTkFont(family=self.selected_font, size=size, weight="normal")
+
 
 class ModernDatabaseManager:
     def __init__(self):
@@ -490,11 +677,25 @@ class ModernDatabaseManager:
         self.font_family = self.font_manager.get_font_family()
         print(f"Using font family: {self.font_family}")
 
-        # Add instructions for Poppins font if not available
-        if self.font_family != "Poppins":
-            print("💡 For the best experience, install Poppins font from Google Fonts:")
-            print("   https://fonts.google.com/specimen/Poppins")
-            print("   Download and install the font files to your system")
+        # Check font status and provide instructions
+        if self.font_manager.check_local_fonts_available():
+            if self.font_family == "Poppins":
+                print("✅ Poppins font loaded successfully from local fonts directory!")
+            else:
+                print(
+                    "⚠️  Poppins font files found but not loaded. Using fallback font."
+                )
+        else:
+            print("📁 No local Poppins font files found.")
+            print("💡 To use Poppins font:")
+            print(
+                f"   1. Download Poppins font from: https://fonts.google.com/specimen/Poppins"
+            )
+            print(f"   2. Place the .ttf files in: {self.font_manager.fonts_dir}")
+            print("   3. Restart the application")
+            print(
+                "   Required files: Poppins-Regular.ttf, Poppins-Medium.ttf, Poppins-SemiBold.ttf, Poppins-Bold.ttf"
+            )
 
         # Initialize PostgreSQL checker
         self.postgres_checker = PostgreSQLChecker()
@@ -608,14 +809,31 @@ class ModernDatabaseManager:
         title_label.grid(row=0, column=1, pady=20)
 
         # Content area with tabs
-        self.tabview = ctk.CTkTabview(main_container, corner_radius=15)
-        self.tabview.grid(row=1, column=0, sticky="nsew", pady=(0, 10))
+        self.tabview = ctk.CTkTabview(
+            main_container,
+            corner_radius=15,
+            segmented_button_fg_color=("#e6e6e6", "gray15"),
+            segmented_button_selected_color=("#1f538d", "#14375e"),
+            segmented_button_selected_hover_color=("#14375e", "#1f538d"),
+            segmented_button_unselected_color=("#e6e6e6", "gray15"),
+            segmented_button_unselected_hover_color=("#d0d0d0", "gray25"),
+            text_color=("gray10", "gray90"),
+            text_color_disabled=("gray50", "gray45"),
+            height=600,
+            border_width=1,
+            border_color=("#e6e6e6", "gray15"),
+            anchor="center",
+        )
+        self.tabview.grid(row=1, column=0, sticky="nsew", pady=(0, 10), padx=10)
         main_container.grid_rowconfigure(1, weight=1)
 
         # Create tabs
         self.setup_backup_tab()
         self.setup_restore_tab()
         self.setup_history_tab()
+
+        # Configure tab button fonts and alignment
+        self.configure_tab_buttons()
 
         # Status bar
         self.status_frame = ctk.CTkFrame(main_container, height=50, corner_radius=10)
@@ -636,6 +854,86 @@ class ModernDatabaseManager:
             font=self.create_font(size=12),
         )
         self.status_label.grid(row=0, column=1, sticky="w", pady=15)
+
+    def configure_tab_buttons(self):
+        """Configure tab button fonts and alignment for better appearance"""
+        try:
+            # Use after() to configure tabs after they're fully created
+            def configure_tabs():
+                try:
+                    # Access the segmented button widget that contains the tab buttons
+                    if hasattr(self.tabview, "_segmented_button"):
+                        segmented_button = self.tabview._segmented_button
+
+                        # Configure the segmented button widget for better spacing
+                        if hasattr(segmented_button, "configure"):
+                            try:
+                                segmented_button.configure(
+                                    font=self.create_font(size=12, weight="bold"),
+                                    height=36,
+                                    corner_radius=8,
+                                    border_width=1,
+                                )
+                            except Exception as config_e:
+                                print(f"Tab button config error: {config_e}")
+
+                        # Configure individual tab buttons with spacing
+                        if hasattr(segmented_button, "_buttons_dict"):
+                            for (
+                                button_name,
+                                button,
+                            ) in segmented_button._buttons_dict.items():
+                                if hasattr(button, "configure"):
+                                    try:
+                                        button.configure(
+                                            font=self.create_font(
+                                                size=12, weight="bold"
+                                            ),
+                                            anchor="center",
+                                            corner_radius=6,
+                                        )
+                                    except Exception as btn_e:
+                                        print(f"Button config error: {btn_e}")
+
+                                # Try to add spacing using grid configuration
+                                if hasattr(button, "grid_configure"):
+                                    try:
+                                        button.grid_configure(padx=3, pady=2)
+                                    except Exception as grid_e:
+                                        print(f"Grid spacing error: {grid_e}")
+
+                    # Configure the tab view for better spacing between buttons
+                    if hasattr(self.tabview, "configure"):
+                        try:
+                            self.tabview.configure(
+                                segmented_button_selected_color=("#1f538d", "#14375e"),
+                                segmented_button_unselected_color=("#f0f0f0", "gray20"),
+                                border_width=0,
+                            )
+                        except Exception as tv_e:
+                            print(f"TabView config error: {tv_e}")
+
+                    # Try to add padding to the segmented button container
+                    try:
+                        if hasattr(self.tabview, "_segmented_button"):
+                            sb = self.tabview._segmented_button
+                            if hasattr(sb, "grid_configure"):
+                                sb.grid_configure(padx=10, pady=5)
+                    except Exception as padding_e:
+                        print(f"Padding config error: {padding_e}")
+
+                    # Note: Cannot modify pack configuration for grid-managed widgets
+                    # CustomTkinter tab buttons use grid internally, so we skip pack modifications
+
+                except Exception as inner_e:
+                    print(f"Inner tab configuration error: {inner_e}")
+
+            # Schedule the configuration to run after the UI is fully loaded
+            self.root.after(100, configure_tabs)
+
+        except Exception as e:
+            print(f"Note: Could not configure tab button fonts: {e}")
+            # This is not critical, so we continue without stopping
 
     def setup_backup_tab(self):
         # Backup tab
@@ -697,18 +995,18 @@ class ModernDatabaseManager:
             height=35,
             width=140,
             corner_radius=8,
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=self.create_font(size=12, weight="bold"),
         )
         test_backup_btn.grid(row=0, column=0, padx=(0, 10))
 
         clear_backup_btn = ctk.CTkButton(
             button_container,
-            text="🗑️ Clear",
+            text="🗑 Clear",
             command=lambda: self.clear_connection("backup"),
             height=35,
             width=85,
             corner_radius=8,
-            font=ctk.CTkFont(size=11, weight="bold"),
+            font=self.create_font(size=11, weight="bold"),
             fg_color=("#d32f2f", "#b71c1c"),
             hover_color=("#b71c1c", "#d32f2f"),
             anchor="center",
@@ -723,7 +1021,7 @@ class ModernDatabaseManager:
         file_title = ctk.CTkLabel(
             file_frame,
             text="📁 Backup File Settings",
-            font=ctk.CTkFont(size=16, weight="bold"),
+            font=self.create_font(size=16, weight="bold"),
         )
         file_title.grid(
             row=0, column=0, columnspan=3, sticky="w", padx=20, pady=(20, 15)
@@ -731,7 +1029,7 @@ class ModernDatabaseManager:
 
         # Save location
         location_label = ctk.CTkLabel(
-            file_frame, text="Save Location:", font=ctk.CTkFont(size=12)
+            file_frame, text="Save Location:", font=self.create_font(size=12)
         )
         location_label.grid(row=1, column=0, sticky="w", padx=(20, 10), pady=(0, 10))
 
@@ -741,7 +1039,7 @@ class ModernDatabaseManager:
             textvariable=self.backup_location_var,
             height=35,
             corner_radius=8,
-            font=ctk.CTkFont(size=11),
+            font=self.create_font(size=11),
             state="readonly",
         )
         self.backup_location_entry.grid(
@@ -755,13 +1053,13 @@ class ModernDatabaseManager:
             width=100,
             height=35,
             corner_radius=8,
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=self.create_font(size=12, weight="bold"),
         )
         backup_browse_btn.grid(row=1, column=2, padx=(0, 20), pady=(0, 10))
 
         # Filename with controls
         filename_label = ctk.CTkLabel(
-            file_frame, text="Filename:", font=ctk.CTkFont(size=12)
+            file_frame, text="Filename:", font=self.create_font(size=12)
         )
         filename_label.grid(row=2, column=0, sticky="w", padx=(20, 10), pady=(0, 5))
 
@@ -779,7 +1077,7 @@ class ModernDatabaseManager:
             textvariable=self.backup_filename_var,
             height=35,
             corner_radius=8,
-            font=ctk.CTkFont(size=11),
+            font=self.create_font(size=11),
             placeholder_text="Enter filename for backup (e.g., mybackup.dump)",
         )
         self.backup_filename_entry.grid(
@@ -794,7 +1092,7 @@ class ModernDatabaseManager:
             width=70,
             height=35,
             corner_radius=8,
-            font=ctk.CTkFont(size=11, weight="bold"),
+            font=self.create_font(size=11, weight="bold"),
         )
         auto_filename_btn.grid(row=0, column=1, padx=(5, 10), pady=10)
 
@@ -802,7 +1100,7 @@ class ModernDatabaseManager:
         filename_hint = ctk.CTkLabel(
             file_frame,
             text="💡 Tip: Filename will automatically get .dump extension if not specified",
-            font=ctk.CTkFont(size=10),
+            font=self.create_font(size=10),
             text_color=("gray60", "gray40"),
         )
         filename_hint.grid(
@@ -817,7 +1115,7 @@ class ModernDatabaseManager:
         backup_op_title = ctk.CTkLabel(
             backup_op_frame,
             text="🚀 Backup Operation",
-            font=ctk.CTkFont(size=16, weight="bold"),
+            font=self.create_font(size=16, weight="bold"),
         )
         backup_op_title.grid(row=0, column=0, pady=(20, 20))
 
@@ -828,7 +1126,7 @@ class ModernDatabaseManager:
             command=self.backup_database,
             height=80,
             corner_radius=12,
-            font=ctk.CTkFont(size=16, weight="bold"),
+            font=self.create_font(size=16, weight="bold"),
             fg_color=("#1f538d", "#14375e"),
             hover_color=("#14375e", "#1f538d"),
         )
@@ -859,12 +1157,12 @@ class ModernDatabaseManager:
         db_title = ctk.CTkLabel(
             db_frame,
             text="🔗 Target Database Connection",
-            font=ctk.CTkFont(size=16, weight="bold"),
+            font=self.create_font(size=16, weight="bold"),
         )
         db_title.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
 
         self.restore_db_entry = ctk.CTkTextbox(
-            db_frame, height=80, corner_radius=10, font=ctk.CTkFont(size=11)
+            db_frame, height=80, corner_radius=10, font=self.create_font(size=11)
         )
         self.restore_db_entry.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 5))
         self.restore_db_entry.insert("0.0", self.default_target_db)
@@ -873,7 +1171,7 @@ class ModernDatabaseManager:
         db_hint = ctk.CTkLabel(
             db_frame,
             text="💡 Format: postgresql://username:password@host:port/database",
-            font=ctk.CTkFont(size=10),
+            font=self.create_font(size=10),
             text_color=("gray60", "gray40"),
         )
         db_hint.grid(row=2, column=0, sticky="w", padx=20, pady=(0, 10))
@@ -894,18 +1192,18 @@ class ModernDatabaseManager:
             height=35,
             width=140,
             corner_radius=8,
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=self.create_font(size=12, weight="bold"),
         )
         test_restore_btn.grid(row=0, column=0, padx=(0, 10))
 
         clear_restore_btn = ctk.CTkButton(
             button_container,
-            text="🗑️ Clear",
+            text="🗑 Clear",
             command=lambda: self.clear_connection("restore"),
             height=35,
             width=85,
             corner_radius=8,
-            font=ctk.CTkFont(size=11, weight="bold"),
+            font=self.create_font(size=11, weight="bold"),
             fg_color=("#d32f2f", "#b71c1c"),
             hover_color=("#b71c1c", "#d32f2f"),
             anchor="center",
@@ -920,7 +1218,7 @@ class ModernDatabaseManager:
         file_title = ctk.CTkLabel(
             file_frame,
             text="📁 Restore File Selection",
-            font=ctk.CTkFont(size=16, weight="bold"),
+            font=self.create_font(size=16, weight="bold"),
         )
         file_title.grid(
             row=0, column=0, columnspan=3, sticky="w", padx=20, pady=(20, 15)
@@ -928,7 +1226,7 @@ class ModernDatabaseManager:
 
         # File path
         file_label = ctk.CTkLabel(
-            file_frame, text="Dump File:", font=ctk.CTkFont(size=12)
+            file_frame, text="Dump File:", font=self.create_font(size=12)
         )
         file_label.grid(row=1, column=0, sticky="w", padx=(20, 10), pady=(0, 20))
 
@@ -938,7 +1236,7 @@ class ModernDatabaseManager:
             textvariable=self.restore_file_var,
             height=35,
             corner_radius=8,
-            font=ctk.CTkFont(size=11),
+            font=self.create_font(size=11),
             placeholder_text="Select a dump file to restore...",
             state="readonly",
         )
@@ -953,7 +1251,7 @@ class ModernDatabaseManager:
             width=100,
             height=35,
             corner_radius=8,
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=self.create_font(size=12, weight="bold"),
         )
         select_file_btn.grid(row=1, column=2, padx=(0, 20), pady=(0, 20))
 
@@ -965,7 +1263,7 @@ class ModernDatabaseManager:
         restore_op_title = ctk.CTkLabel(
             restore_op_frame,
             text="🚀 Restore Operation",
-            font=ctk.CTkFont(size=16, weight="bold"),
+            font=self.create_font(size=16, weight="bold"),
         )
         restore_op_title.grid(row=0, column=0, pady=(20, 20))
 
@@ -976,7 +1274,7 @@ class ModernDatabaseManager:
             command=self.restore_database,
             height=80,
             corner_radius=12,
-            font=ctk.CTkFont(size=16, weight="bold"),
+            font=self.create_font(size=16, weight="bold"),
             fg_color=("#1f8d53", "#145e35"),
             hover_color=("#145e35", "#1f8d53"),
         )
@@ -989,28 +1287,30 @@ class ModernDatabaseManager:
         self.history_tab.grid_rowconfigure(1, weight=1)
 
         # History header
-        history_header = ctk.CTkFrame(self.history_tab, corner_radius=15)
+        history_header = ctk.CTkFrame(
+            self.history_tab, corner_radius=15, fg_color="transparent"
+        )
         history_header.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
         history_header.grid_columnconfigure(0, weight=1)
 
         history_title = ctk.CTkLabel(
             history_header,
             text="📊 Operation History",
-            font=ctk.CTkFont(size=16, weight="bold"),
+            font=self.create_font(size=16, weight="bold"),
         )
         history_title.grid(row=0, column=0, pady=15)
 
         # History buttons
-        history_btn_frame = ctk.CTkFrame(history_header)
+        history_btn_frame = ctk.CTkFrame(history_header, fg_color="transparent")
         history_btn_frame.grid(row=1, column=0, pady=(0, 15))
 
         clear_btn = ctk.CTkButton(
             history_btn_frame,
-            text="🗑️ Clear History",
+            text="🗑 Clear History",
             command=self.clear_history,
             height=32,
             corner_radius=8,
-            font=ctk.CTkFont(size=11, weight="bold"),
+            font=self.create_font(size=11, weight="bold"),
             fg_color=("#d32f2f", "#b71c1c"),
             hover_color=("#b71c1c", "#d32f2f"),
         )
@@ -1022,7 +1322,7 @@ class ModernDatabaseManager:
             command=self.update_history_display,
             height=32,
             corner_radius=8,
-            font=ctk.CTkFont(size=11, weight="bold"),
+            font=self.create_font(size=11, weight="bold"),
         )
         refresh_btn.grid(row=0, column=1, padx=(5, 10), pady=5)
 
@@ -1030,7 +1330,7 @@ class ModernDatabaseManager:
         self.history_textbox = ctk.CTkTextbox(
             self.history_tab,
             corner_radius=15,
-            font=ctk.CTkFont(family="Consolas", size=11),
+            font=self.create_font(size=11),
             wrap="word",
         )
         self.history_textbox.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
@@ -1117,14 +1417,14 @@ class ModernDatabaseManager:
             )
             if confirm:
                 self.backup_db_entry.delete("0.0", "end")
-                self.status_var.set("🗑️ Source database connection cleared")
+                self.status_var.set("🗑 Source database connection cleared")
         else:
             confirm = messagebox.askyesno(
                 "Clear Connection", "Clear the target database connection string?"
             )
             if confirm:
                 self.restore_db_entry.delete("0.0", "end")
-                self.status_var.set("🗑️ Target database connection cleared")
+                self.status_var.set("🗑 Target database connection cleared")
 
     def generate_auto_filename(self):
         """Generate automatic filename with timestamp"""
@@ -1340,18 +1640,23 @@ class ModernDatabaseManager:
                         self.root,
                         "Backup Failed",
                         f"❌ Backup operation failed!\n\nError details:\n{error_msg}",
+                        font_family=self.font_family,
                     )
 
             except FileNotFoundError:
                 error_msg = "pg_dump not found. Please ensure PostgreSQL is installed and added to PATH."
                 self.status_var.set("❌ pg_dump not found")
                 self.add_to_history("BACKUP", f"Error: {error_msg}", "", source_db)
-                show_error_dialog(self.root, "Error", f"❌ {error_msg}")
+                show_error_dialog(
+                    self.root, "Error", f"❌ {error_msg}", font_family=self.font_family
+                )
             except Exception as e:
                 error_msg = f"Unexpected error: {str(e)}"
                 self.status_var.set("❌ Backup failed!")
                 self.add_to_history("BACKUP", f"Error: {error_msg}", "", source_db)
-                show_error_dialog(self.root, "Error", f"❌ {error_msg}")
+                show_error_dialog(
+                    self.root, "Error", f"❌ {error_msg}", font_family=self.font_family
+                )
             finally:
                 self.progress_bar.stop()
                 self.progress_bar.set(0)
@@ -1469,6 +1774,7 @@ class ModernDatabaseManager:
                         self.root,
                         "Restore Failed",
                         f"❌ Restore operation failed!\n\nError details:\n{error_msg}",
+                        font_family=self.font_family,
                     )
 
             except FileNotFoundError:
@@ -1477,14 +1783,18 @@ class ModernDatabaseManager:
                 self.add_to_history(
                     "RESTORE", f"Error: {error_msg}", dump_file, target_db
                 )
-                show_error_dialog(self.root, "Error", f"❌ {error_msg}")
+                show_error_dialog(
+                    self.root, "Error", f"❌ {error_msg}", font_family=self.font_family
+                )
             except Exception as e:
                 error_msg = f"Unexpected error: {str(e)}"
                 self.status_var.set("❌ Restore failed!")
                 self.add_to_history(
                     "RESTORE", f"Error: {error_msg}", dump_file, target_db
                 )
-                show_error_dialog(self.root, "Error", f"❌ {error_msg}")
+                show_error_dialog(
+                    self.root, "Error", f"❌ {error_msg}", font_family=self.font_family
+                )
             finally:
                 self.progress_bar.stop()
                 self.progress_bar.set(0)
@@ -1567,7 +1877,7 @@ class ModernDatabaseManager:
             self.history = []
             self.save_history()
             self.update_history_display()
-            self.status_var.set("🗑️ History cleared")
+            self.status_var.set("🗑 History cleared")
 
     def update_history_display(self):
         """Update history display in the textbox"""
