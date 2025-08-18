@@ -47,13 +47,18 @@ def build_executable():
     # Check for UPX compressor
     upx_available = check_upx_available()
 
+    # Get the PyInstaller path from the virtual environment
+    pyinstaller_path = os.path.join(os.path.dirname(sys.executable), "pyinstaller.exe")
+    if not os.path.exists(pyinstaller_path):
+        pyinstaller_path = "pyinstaller"  # Fallback to system PATH
+
     # Base PyInstaller command with optimization options
     cmd = [
-        "pyinstaller",
+        pyinstaller_path,
         "--onefile",  # Create a single executable file
         "--windowed",  # Hide console window (GUI app)
         "--name=PostgreSQL_Database_Manager",  # Name of the executable
-        "--icon=NONE",  # You can add an .ico file path here if you have one
+        "--icon=icon/app-icon.ico",  # Application icon
         "--uac-admin",  # Request administrator privileges
         "--optimize=2",  # Maximum Python optimization
         "--strip",  # Strip debug symbols (Linux/macOS, ignored on Windows)
