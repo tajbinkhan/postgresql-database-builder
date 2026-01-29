@@ -173,17 +173,42 @@ class PostgreSQLChecker:
 
     def __init__(self):
         self.pg_commands = ["pg_dump", "pg_restore", "psql"]
-        self.common_postgres_paths = [
-            r"C:\Program Files\PostgreSQL\*\bin",
-            r"C:\Program Files (x86)\PostgreSQL\*\bin",
-            r"C:\postgresql\bin",
-            r"C:\postgres\bin",
-            r"/usr/bin",
-            r"/usr/local/bin",
-            r"/opt/postgresql/bin",
-            r"/Library/PostgreSQL/*/bin",
-        ]
+        self.common_postgres_paths = self._get_common_paths()
         self.postgres_status = self.check_postgresql_installation()
+
+    def _get_common_paths(self):
+        """Get common PostgreSQL installation paths based on OS"""
+        system = platform.system()
+
+        if system == "Windows":
+            return [
+                r"C:\Program Files\PostgreSQL\*\bin",
+                r"C:\Program Files (x86)\PostgreSQL\*\bin",
+                r"C:\PostgreSQL\*\bin",
+                r"C:\postgresql\bin",
+                r"C:\postgres\bin",
+                r"C:\ProgramData\PostgreSQL\*\bin",
+                os.path.expanduser(r"~\AppData\Local\Programs\PostgreSQL\*\bin"),
+            ]
+        elif system == "Darwin":  # macOS
+            return [
+                "/usr/local/bin",
+                "/opt/homebrew/bin",
+                "/opt/homebrew/opt/postgresql@*/bin",
+                "/usr/local/opt/postgresql@*/bin",
+                "/Library/PostgreSQL/*/bin",
+                "/Applications/Postgres.app/Contents/Versions/*/bin",
+                os.path.expanduser("~/Library/PostgreSQL/*/bin"),
+            ]
+        else:  # Linux
+            return [
+                "/usr/bin",
+                "/usr/local/bin",
+                "/usr/lib/postgresql/*/bin",
+                "/opt/postgresql/bin",
+                "/opt/PostgreSQL/*/bin",
+                os.path.expanduser("~/.local/bin"),
+            ]
 
     def check_command_availability(self, command):
         """Check if a specific PostgreSQL command is available"""
@@ -327,52 +352,78 @@ class PostgreSQLChecker:
 
         if status["installed"]:
             if show_success:
+                version_info = "\n".join(
+                    [
+                        f"✅ {cmd}: {status['commands_available'][cmd]['info']}"
+                        for cmd in self.pg_commands
+                    ]
+                )
                 messagebox.showinfo(
                     "✅ PostgreSQL Status",
-                    "PostgreSQL is properly installed and configured!\n\n"
-                    + "\n".join([f"✅ {cmd}: Available" for cmd in self.pg_commands]),
+                    f"PostgreSQL is properly installed and configured!\n\n{version_info}",
                 )
             return True
 
         # Create detailed error message
-        message = "❌ PostgreSQL Setup Issues Detected:\n\n"
+        system = platform.system()
+        message = "❌ PostgreSQL Tools Not Found\n\n"
+        message += "Missing commands:\n"
 
         for cmd in status["missing_commands"]:
-            info = status["commands_available"][cmd]["info"]
-            message += f"❌ {cmd}: {info}\n"
+            message += f"  ❌ {cmd}\n"
 
         if status["path_issues"]:
-            message += f"\n🔍 PostgreSQL installation found at:\n"
-            for path in status["suggested_paths"]:
+            message += f"\n✅ Good news! PostgreSQL installation found:\n"
+            for path in status["suggested_paths"][:3]:  # Show max 3 paths
                 message += f"   📁 {path}\n"
-            message += "\n💡 Would you like to add PostgreSQL to your PATH?"
+            if len(status["suggested_paths"]) > 3:
+                message += f"   ... and {len(status['suggested_paths']) - 3} more\n"
+            message += "\n💡 These directories need to be added to your PATH.\n"
+            message += "\nWould you like to fix this?"
 
             # Show dialog with fix option
             result = messagebox.askyesnocancel(
-                "🔧 PostgreSQL Path Fix",
+                "🔧 Fix PostgreSQL PATH",
                 message
-                + "\n\nChoose an option:\n"
-                + "• YES: Automatically fix PATH\n"
-                + "• NO: Show manual instructions\n"
+                + "\n\n📋 Choose an option:\n"
+                + "• YES: Automatically add to PATH (recommended)\n"
+                + "• NO: Show manual setup instructions\n"
                 + "• CANCEL: Continue without fixing",
             )
 
             if result is True:  # YES - Auto fix
                 return self.auto_fix_path(status["suggested_paths"])
             elif result is False:  # NO - Manual instructions
-                self.show_manual_instructions()
+                self.show_manual_instructions(status["suggested_paths"])
                 return False
             else:  # CANCEL
                 return False
         else:
             message += "\n📥 PostgreSQL needs to be installed.\n\n"
-            message += "Please install PostgreSQL from:\n"
-            message += "🌐 https://www.postgresql.org/download/\n\n"
-            message += "Make sure to include command line tools during installation."
 
-            # Note: Using messagebox here as this is called from PostgreSQLChecker
-            # which doesn't have access to the main window
-            messagebox.showerror("PostgreSQL Not Found", message)
+            if system == "Windows":
+                message += "Download for Windows:\n"
+                message += "🌐 https://www.postgresql.org/download/windows/\n"
+                message += "🌐 https://www.enterprisedb.com/downloads/postgres-postgresql-downloads\n\n"
+                message += "⚠️ During installation:\n"
+                message += "  • Select 'Command Line Tools'\n"
+                message += "  • Check 'Add PostgreSQL to PATH'\n"
+            elif system == "Darwin":  # macOS
+                message += "Install on macOS:\n"
+                message += "📦 Using Homebrew (recommended):\n"
+                message += "   brew install postgresql@15\n\n"
+                message += "🌐 Or download from:\n"
+                message += "   https://www.postgresql.org/download/macosx/\n\n"
+            else:  # Linux
+                message += "Install on Linux:\n"
+                message += "📦 Debian/Ubuntu:\n"
+                message += "   sudo apt-get install postgresql-client\n\n"
+                message += "📦 RHEL/CentOS:\n"
+                message += "   sudo yum install postgresql\n\n"
+                message += "📦 Arch:\n"
+                message += "   sudo pacman -S postgresql\n\n"
+
+            messagebox.showerror("PostgreSQL Not Installed", message)
             return False
 
     def auto_fix_path(self, suggested_paths):
@@ -411,28 +462,62 @@ class PostgreSQLChecker:
             )
             return False
 
-    def show_manual_instructions(self):
+    def show_manual_instructions(self, suggested_paths=None):
         """Show manual PATH setup instructions"""
-        instructions = """🔧 Manual PostgreSQL PATH Setup:
+        system = platform.system()
+        instructions = "🔧 Manual PostgreSQL PATH Setup\n\n"
 
-Windows:
-1. Open System Properties (Win + R → sysdm.cpl)
-2. Click "Environment Variables"
-3. Select "PATH" in System Variables
-4. Click "Edit" → "New"
-5. Add the PostgreSQL bin directory path
-6. Click OK to save
-7. Restart your applications
+        if suggested_paths:
+            instructions += "📁 Add this path to your environment:\n"
+            instructions += f"   {suggested_paths[0]}\n\n"
 
-Example paths to add:
-• C:\\Program Files\\PostgreSQL\\15\\bin
-• C:\\Program Files\\PostgreSQL\\14\\bin
+        if system == "Windows":
+            instructions += """Windows Setup:
+1. Press Win + R, type: sysdm.cpl
+2. Go to 'Advanced' tab → 'Environment Variables'
+3. Under 'System variables', find and select 'Path'
+4. Click 'Edit' → 'New'
+5. Paste the PostgreSQL bin path
+6. Click 'OK' on all dialogs
+7. Restart this application
 
-macOS/Linux:
-Add to ~/.bashrc or ~/.zshrc:
-export PATH="/usr/local/pgsql/bin:$PATH"
+Alternative (PowerShell as Admin):
+$env:Path += ";C:\\Program Files\\PostgreSQL\\15\\bin"
+[Environment]::SetEnvironmentVariable('Path', $env:Path, 'Machine')"""
+        elif system == "Darwin":  # macOS
+            instructions += """macOS Setup:
+1. Open Terminal
+2. Edit your shell profile:
+   nano ~/.zshrc   (for zsh, default on macOS)
+   # or
+   nano ~/.bash_profile   (for bash)
 
-Then run: source ~/.bashrc"""
+3. Add this line:
+   export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+
+4. Save (Ctrl+O, Enter, Ctrl+X)
+5. Reload: source ~/.zshrc
+6. Restart this application
+
+If using Homebrew:
+brew install postgresql@15
+brew link postgresql@15"""
+        else:  # Linux
+            instructions += """Linux Setup:
+1. Open Terminal
+2. Edit your shell profile:
+   nano ~/.bashrc
+
+3. Add this line:
+   export PATH="/usr/bin:/usr/local/bin:$PATH"
+
+4. Save and reload:
+   source ~/.bashrc
+5. Restart this application
+
+Verify installation:
+which psql
+psql --version"""
 
         messagebox.showinfo("Manual Setup Instructions", instructions)
 
