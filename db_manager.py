@@ -305,9 +305,19 @@ class PostgreSQLChecker:
                             f"Could not update system PATH (admin required): {e}",
                         )
                 else:
-                    # Unix-like systems
+                    # Unix-like systems (macOS/Linux)
+                    # Update current session
                     os.environ["PATH"] = f"{new_path}:{current_path}"
-                    return True, "PATH updated for current session"
+
+                    # Try to update shell configuration file for persistence
+                    try:
+                        success, msg = self.update_unix_shell_config(new_path)
+                        if success:
+                            return True, msg
+                        else:
+                            return False, msg
+                    except Exception as e:
+                        return False, f"Could not update shell configuration: {e}"
             else:
                 return True, "Path already in PATH"
         except Exception as e:
@@ -345,6 +355,49 @@ class PostgreSQLChecker:
             raise Exception("winreg not available - cannot update system PATH")
         except PermissionError:
             raise Exception("Administrator privileges required to update system PATH")
+
+    def update_unix_shell_config(self, new_path):
+        """Update shell configuration file for macOS/Linux"""
+        try:
+            # Determine which shell config file to use
+            home = os.path.expanduser("~")
+            shell = os.environ.get("SHELL", "/bin/bash")
+
+            # Determine config file based on shell
+            if "zsh" in shell:
+                config_file = os.path.join(home, ".zshrc")
+            elif "bash" in shell:
+                # macOS uses .bash_profile, Linux typically uses .bashrc
+                if platform.system() == "Darwin":
+                    config_file = os.path.join(home, ".bash_profile")
+                    # Also check .bashrc as fallback
+                    if not os.path.exists(config_file) and os.path.exists(os.path.join(home, ".bashrc")):
+                        config_file = os.path.join(home, ".bashrc")
+                else:
+                    config_file = os.path.join(home, ".bashrc")
+            else:
+                config_file = os.path.join(home, ".profile")
+
+            # Check if path is already in the config file
+            export_line = f'export PATH="{new_path}:$PATH"'
+
+            if os.path.exists(config_file):
+                with open(config_file, 'r') as f:
+                    content = f.read()
+                    if new_path in content:
+                        return True, f"PATH already configured in {os.path.basename(config_file)}"
+
+            # Append to config file
+            with open(config_file, 'a') as f:
+                f.write(f"\n# PostgreSQL - Added by PostgreSQL Database Manager\n")
+                f.write(f"{export_line}\n")
+
+            return True, f"PATH added to {os.path.basename(config_file)}. Changes will take effect in new terminal sessions."
+
+        except PermissionError:
+            return False, f"Permission denied writing to {config_file}"
+        except Exception as e:
+            return False, f"Error updating shell config: {str(e)}"
 
     def show_installation_dialog(self, parent_window, show_success=True):
         """Show PostgreSQL installation status and fix options"""
@@ -395,13 +448,30 @@ class PostgreSQLChecker:
                 return self.auto_fix_path(status["suggested_paths"])
             elif result is False:  # NO - Manual instructions
                 self.show_manual_instructions(status["suggested_paths"])
-                return False
-            else:  # CANCEL
-                return False
-        else:
-            message += "\n📥 PostgreSQL needs to be installed.\n\n"
-
-            if system == "Windows":
+                system = platform.system()
+                if system in ["Darwin", "Linux"]:
+                    # Unix systems - need to reload shell
+                    messagebox.showinfo(
+                        "✅ PATH Updated Successfully",
+                        f"PostgreSQL has been added to your PATH:\n\n"
+                        f"📁 {postgres_path}\n\n"
+                        f"ℹ️ {message}\n\n"
+                        f"⚠️ IMPORTANT: To activate the changes:\n"
+                        f"1. Close this application\n"
+                        f"2. Open a NEW Terminal window\n"
+                        f"3. Run: source ~/.zshrc  (or source ~/.bashrc)\n"
+                        f"4. Restart this application from the new Terminal\n\n"
+                        f"OR simply restart your computer for changes to take effect.",
+                    )
+                else:
+                    # Windows
+                    messagebox.showinfo(
+                        "✅ PATH Updated",
+                        f"Successfully added PostgreSQL to PATH:\n\n"
+                        f"📁 {postgres_path}\n\n"
+                        f"ℹ️ {message}\n\n"
+                        f"Please restart the application to apply changes.",
+                if system == "Windows":
                 message += "Download for Windows:\n"
                 message += "🌐 https://www.postgresql.org/download/windows/\n"
                 message += "🌐 https://www.enterprisedb.com/downloads/postgres-postgresql-downloads\n\n"
