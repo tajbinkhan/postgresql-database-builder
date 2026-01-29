@@ -2,6 +2,18 @@ import os
 import subprocess
 import sys
 import shutil
+import platform
+
+
+def get_platform_info():
+    """Get current platform information"""
+    system = platform.system()
+    return {
+        'system': system,
+        'is_windows': system == 'Windows',
+        'is_mac': system == 'Darwin',
+        'is_linux': system == 'Linux'
+    }
 
 
 def install_pyinstaller():
@@ -42,13 +54,18 @@ def check_upx_available():
 
 def build_executable():
     """Build the executable using PyInstaller"""
-    print("🔨 Building optimized executable with compression...")
+    plat = get_platform_info()
+    print(f"🔨 Building optimized executable for {plat['system']}...")
 
     # Check for UPX compressor
     upx_available = check_upx_available()
 
     # Get the PyInstaller path from the virtual environment
-    pyinstaller_path = os.path.join(os.path.dirname(sys.executable), "pyinstaller.exe")
+    if plat['is_windows']:
+        pyinstaller_path = os.path.join(os.path.dirname(sys.executable), "pyinstaller.exe")
+    else:
+        pyinstaller_path = os.path.join(os.path.dirname(sys.executable), "pyinstaller")
+
     if not os.path.exists(pyinstaller_path):
         pyinstaller_path = "pyinstaller"  # Fallback to system PATH
 
@@ -58,8 +75,6 @@ def build_executable():
         "--onefile",  # Create a single executable file
         "--windowed",  # Hide console window (GUI app)
         "--name=PostgreSQL_Database_Manager",  # Name of the executable
-        "--icon=icon/app-icon.ico",  # Application icon
-        "--uac-admin",  # Request administrator privileges
         "--optimize=2",  # Maximum Python optimization
         "--strip",  # Strip debug symbols (Linux/macOS, ignored on Windows)
         "--exclude-module=tkinter.test",  # Exclude test modules
@@ -79,6 +94,27 @@ def build_executable():
         "--exclude-module=concurrent",  # Exclude concurrent.futures
     ]
 
+    # Platform-specific options
+    if plat['is_windows']:
+        # Windows-specific icon and admin privileges
+        if os.path.exists("icon/app-icon.ico"):
+            cmd.append("--icon=icon/app-icon.ico")
+        cmd.append("--uac-admin")  # Request administrator privileges
+        print("🪟 Windows build with UAC admin privileges")
+    elif plat['is_mac']:
+        # macOS-specific icon
+        if os.path.exists("icon/app-icon.icns"):
+            cmd.append("--icon=icon/app-icon.icns")
+            print("🍎 macOS build with .icns icon")
+        elif os.path.exists("icon/app-icon.ico"):
+            print("💡 Note: Convert .ico to .icns for proper macOS icon")
+            print("   Run: sips -s format icns icon/app-icon.ico --out icon/app-icon.icns")
+    elif plat['is_linux']:
+        # Linux-specific icon
+        if os.path.exists("icon/app-icon.png"):
+            cmd.append("--icon=icon/app-icon.png")
+        print("🐧 Linux build")
+
     # Add UPX compression if available
     if upx_available:
         cmd.append("--upx-dir=.")  # Use UPX from current directory or PATH
@@ -90,14 +126,15 @@ def build_executable():
     # Add the main script
     cmd.append("db_manager.py")
 
-    # Add manifest file if it exists
-    if os.path.exists("app.manifest"):
+    # Add manifest file if it exists (Windows only)
+    if plat['is_windows'] and os.path.exists("app.manifest"):
         cmd.insert(-1, "--manifest=app.manifest")
         print("🛡️ Including administrator manifest")
 
-    # Add data files only if they exist
+    # Add data files only if they exist (use appropriate separator)
+    data_separator = ";" if plat['is_windows'] else ":"
     if os.path.exists("db_operations_history.json"):
-        cmd.insert(-1, "--add-data=db_operations_history.json;.")
+        cmd.insert(-1, f"--add-data=db_operations_history.json{data_separator}.")
         print("📄 Including existing history file")
 
     try:
@@ -110,8 +147,14 @@ def build_executable():
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
+            text=True, (platform-specific extension)
+            plat = get_platform_info()
+            if plat['is_windows']:
+                exe_name = "PostgreSQL_Database_Manager.exe"
+            else:
+                exe_name = "PostgreSQL_Database_Manager"
+
+            exe_path = os.path.join("dist", exe_name
             universal_newlines=True,
         )
 
@@ -170,19 +213,32 @@ def build_executable():
         return False
 
 
-def clean_build_files():
-    """Clean up build artifacts"""
-    print("🧹 Cleaning up build files...")
+def cleanlat = get_platform_info()
+        print("\n🎉 Optimized build process completed successfully!")
+        print("💡 You can now run the executable from the 'dist' folder")
 
-    # Remove build directory
-    if os.path.exists("build"):
-        shutil.rmtree("build")
-        print("✅ Removed 'build' directory")
+        # Ask if user wants to clean up
+        clean_up = input("\n🧹 Do you want to clean up build files? (y/n): ").lower()
+        if clean_up in ["y", "yes"]:
+            clean_build_files()
 
-    # Remove spec file
-    spec_file = "PostgreSQL_Database_Manager.spec"
-    if os.path.exists(spec_file):
-        os.remove(spec_file)
+        print("\n📋 Summary:")
+        if plat['is_windows']:
+            exe_name = "PostgreSQL_Database_Manager.exe"
+            print(f"- Executable: dist/{exe_name}")
+            print("- Runs with administrator privileges")
+            print("- Double-click to run (will prompt for admin access)")
+        elif plat['is_mac']:
+            exe_name = "PostgreSQL_Database_Manager"
+            print(f"- Executable: dist/{exe_name}")
+            print("- Run with: sudo ./dist/PostgreSQL_Database_Manager")
+            print("- Or grant permissions: chmod +x ./dist/PostgreSQL_Database_Manager")
+        else:
+            exe_name = "PostgreSQL_Database_Manager"
+            print(f"- Executable: dist/{exe_name}")
+            print("- Run with: sudo ./dist/PostgreSQL_Database_Manager")
+
+        print("- Optimized and compressed for smaller file size
         print("✅ Removed spec file")
 
 

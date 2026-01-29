@@ -1,8 +1,10 @@
 # Build System Guide
 
-Complete guide for building and optimizing the PostgreSQL Database Manager executable.
+Complete guide for building and optimizing the PostgreSQL Database Manager executable on Windows, macOS, and Linux.
 
 ## 🚀 Quick Start
+
+### Windows
 
 ```bash
 # Simple build
@@ -13,19 +15,50 @@ python build_exe.py
 python build_exe.py
 ```
 
+### macOS
+
+```bash
+# Simple build
+python3 build_exe.py
+
+# With UPX compression
+brew install upx
+python3 build_exe.py
+
+# Convert icon to .icns format (optional)
+sips -s format icns icon/app-icon.ico --out icon/app-icon.icns
+```
+
+### Linux
+
+```bash
+# Simple build
+python3 build_exe.py
+
+# With UPX compression
+sudo apt-get install upx  # Debian/Ubuntu
+# or
+sudo yum install upx      # RHEL/CentOS
+# or
+sudo pacman -S upx        # Arch
+
+python3 build_exe.py
+```
+
 ## 📊 Optimization Results
 
-| Build Type | Size | Reduction | Features |
-|------------|------|-----------|----------|
-| **Standard PyInstaller** | ~13 MB | 0% | Basic executable |
-| **Optimized PyInstaller** | ~11.0 MB | 15% | Module exclusions, bytecode optimization |
-| **UPX Compressed** | **~9.6 MB** | **26%** | Full optimization + compression |
+| Build Type                | Size        | Reduction | Features                                 |
+| ------------------------- | ----------- | --------- | ---------------------------------------- |
+| **Standard PyInstaller**  | ~13 MB      | 0%        | Basic executable                         |
+| **Optimized PyInstaller** | ~11.0 MB    | 15%       | Module exclusions, bytecode optimization |
+| **UPX Compressed**        | **~9.6 MB** | **26%**   | Full optimization + compression          |
 
 ## 🛠️ Build System Architecture
 
 ### Core Components
 
 #### **build_exe.py**
+
 Main build script with advanced optimization features:
 
 ```python
@@ -39,6 +72,7 @@ Main build script with advanced optimization features:
 ```
 
 #### **install_upx.bat**
+
 Automated UPX compressor installer:
 
 ```batch
@@ -50,6 +84,7 @@ Automated UPX compressor installer:
 ```
 
 #### **app.manifest**
+
 Windows UAC manifest for administrator privileges:
 
 ```xml
@@ -63,6 +98,7 @@ Windows UAC manifest for administrator privileges:
 ### Optimization Techniques
 
 #### **Module Exclusion Strategy**
+
 Automatically excludes unused Python modules:
 
 ```python
@@ -82,6 +118,7 @@ excluded_modules = [
 **Impact**: ~2 MB reduction from module exclusions
 
 #### **UPX Compression Details**
+
 Advanced compression using UPX compressor:
 
 ```bash
@@ -115,6 +152,7 @@ build_options = [
 ### Custom Build Options
 
 #### **Development Build**
+
 For testing and debugging:
 
 ```python
@@ -127,6 +165,7 @@ debug_options = [
 ```
 
 #### **Distribution Build**
+
 For production release:
 
 ```python
@@ -142,16 +181,52 @@ production_options = [
 ### Build Environment Setup
 
 #### **Required Tools**
+
 ```bash
 # Core requirements
 pip install pyinstaller>=5.0
 pip install customtkinter>=5.0.0
 
 # Optional (for maximum compression)
-# UPX compressor (install_upx.bat)
+# Windows: UPX compressor (install_upx.bat)
+# macOS: brew install upx
+# Linux: apt-get/yum/pacman install upx
+```
+
+#### **Platform-Specific Requirements**
+
+##### Windows
+
+```bash
+# No additional requirements
+# UAC manifest for admin privileges included
+```
+
+##### macOS
+
+```bash
+# Convert icon to .icns format (optional)
+sips -s format icns icon/app-icon.ico --out icon/app-icon.icns
+
+# Or use iconutil
+mkdir icon/app-icon.iconset
+# Add required icon sizes, then:
+iconutil -c icns icon/app-icon.iconset
+```
+
+##### Linux
+
+```bash
+# For GUI support
+sudo apt-get install python3-tk  # Debian/Ubuntu
+sudo yum install python3-tkinter  # RHEL/CentOS
+
+# For icon support (optional)
+# Use PNG format icon
 ```
 
 #### **Virtual Environment (Recommended)**
+
 ```bash
 # Create isolated environment
 python -m venv build_env
@@ -165,9 +240,144 @@ pip install -r requirements.txt
 ## 📝 Build Process Workflow
 
 ### 1. **Preparation Phase**
+
 - ✅ Check PyInstaller installation
 - ✅ Validate source files
-- ✅ Detect UPX compressor
+- ✅ DetPlatform Detection\*\*
+
+```bash
+# Check platform
+python -c "import platform; print(platform.system())"
+
+# Output: Windows, Darwin (macOS), or Linux
+```
+
+#### **macOS-Specific Issues**
+
+##### **Icon not showing**
+
+```bash
+# Convert .ico to .icns
+sips -s format icns icon/app-icon.ico --out icon/app-icon.icns
+
+# Rebuild with .icns icon
+python3 build_exe.py
+```
+
+##### **Permission denied**
+
+```bash
+# Make executable
+chmod +x dist/PostgreSQL_Database_Manager
+
+# Run with sudo for PostgreSQL operations
+sudo ./dist/PostgreSQL_Database_Manager
+```
+
+##### **"Developer cannot be verified" error**
+
+```bash
+# Remove quarantine attribute
+xattr -cr dist/PostgreSQL_Database_Manager
+
+# Or allow in System Preferences > Security & Privacy
+```
+
+#### **Linux-Specific Issues**
+
+##### **Missing tkinter**
+
+```bash
+# Install tkinter
+sudo apt-get install python3-tk  # Debian/Ubuntu
+sudo yum install python3-tkinter  # RHEL/CentOS
+sudo pacman -S tk                 # Arch
+```
+
+##### **Binary won't run**
+
+````bash
+# Make executable
+chmod +x dist/PostgreSQL_Database_Manager
+
+# ChPlatform-Specific Distribution
+
+#### **Windows**
+```bash
+# Verify executable
+dist\PostgreSQL_Database_Manager.exe --version
+
+# Check file size
+Get-ChildItem dist\*.exe | Select-Object Name, Length
+
+# Code signing (recommended)
+signtool sign /f certificate.pfx dist\PostgreSQL_Database_Manager.exe
+
+# Generate checksum
+ceVirus scanning
+# Submit to VirusTotal before distribution
+
+# Generate checksums for all platforms
+# Windows
+certutil -hashfile dist\PostgreSQL_Database_Manager.exe SHA256
+
+# macOS/Linux
+sha256sum dist/PostgreSQL_Database_Manager
+````
+
+### Release Checklist (Cross-Platform)
+
+- [ ] ✅ Build with UPX compression
+- [ ] ✅ Test on target platform
+- [ ] ✅ Verify PostgreSQL integration
+- [ ] ✅ Check file size
+- [ ] ✅ Test privileges/permissions
+- [ ] ✅ Validate all UI functions
+- [ ] ✅ Generate checksums
+- [ ] ✅ Create release notes
+- [ ] ✅ Package for distribution (DMG/DEB/RPM if needed)
+- [ ] ✅ Code signing (if applicable)gn "Developer ID" \
+      dist/PostgreSQL_Database_Manager
+
+# Notarization for Gatekeeper
+
+xcrun altool --notarize-app \
+ --primary-bundle-id "com.yourcompany.pgmanager" \
+ --username "your@apple.id" \
+ --password "@keychain:AC_PASSWORD" \
+ --file PostgreSQL_Manager.dmg
+
+````
+
+#### **Linux**
+```bash
+# Verify executable
+./dist/PostgreSQL_Database_Manager --version
+
+# Check file size
+ls -lh dist/PostgreSQL_Database_Manager
+
+# Create .deb package (Debian/Ubuntu)
+mkdir -p pgmanager_1.0/usr/local/bin
+cp dist/PostgreSQL_Database_Manager pgmanager_1.0/usr/local/bin/
+mkdir -p pgmanager_1.0/DEBIAN
+# Create control file and build
+dpkg-deb --build pgmanager_1.0
+
+# Create .rpm package (RHEL/CentOS)
+rpmbuild -bb pgmanager.spec
+
+# Generate checksum
+sha256sum dist/PostgreSQL_Database_Manager
+````
+
+### eck dependencies
+
+ldd dist/PostgreSQL_Database_Manager
+
+````
+
+#### **ect UPX compressor
 - ✅ Create build directory
 
 ### 2. **Analysis Phase**
@@ -205,9 +415,10 @@ Solution: pip install -r requirements.txt
 
 # Problem: Virtual environment issues
 Solution: Deactivate/reactivate venv
-```
+````
 
 #### **UPX Compression Warnings**
+
 ```bash
 # Warning: "Failed to run strip on file.dll"
 Status: ⚠️ Normal - some DLLs can't be stripped
@@ -219,6 +430,7 @@ Action: ✅ Safe to ignore
 ```
 
 #### **Large Executable Size**
+
 ```bash
 # Check UPX installation
 .\upx.exe --version
@@ -234,11 +446,13 @@ python build_exe.py
 ### Performance Optimization
 
 #### **Build Speed**
+
 - **First build**: ~30-60 seconds
 - **Incremental builds**: ~10-20 seconds
 - **Clean builds**: ~30-45 seconds
 
 #### **Optimization Tips**
+
 ```bash
 # Faster builds:
 - Use SSD storage
@@ -250,6 +464,7 @@ python build_exe.py
 ## 📦 Distribution Best Practices
 
 ### File Integrity
+
 ```bash
 # Verify executable
 dist\PostgreSQL_Database_Manager.exe --version
@@ -262,6 +477,7 @@ Get-ChildItem dist\*.exe | Select-Object Name, Length
 ```
 
 ### Security Considerations
+
 ```bash
 # Code signing (recommended for production)
 signtool sign /f certificate.pfx dist\PostgreSQL_Database_Manager.exe
@@ -274,6 +490,7 @@ certutil -hashfile dist\PostgreSQL_Database_Manager.exe SHA256
 ```
 
 ### Release Checklist
+
 - [ ] ✅ Build with UPX compression
 - [ ] ✅ Test on clean Windows system
 - [ ] ✅ Verify PostgreSQL integration
@@ -286,6 +503,7 @@ certutil -hashfile dist\PostgreSQL_Database_Manager.exe SHA256
 ## 🔍 Build Analysis Tools
 
 ### Size Analysis
+
 ```python
 # Analyze executable size breakdown
 pyinstaller --onefile --analyze db_manager.py
@@ -296,6 +514,7 @@ python -m PyInstaller.utils.cliutils.analyze <spec_file>
 ```
 
 ### Dependency Tracking
+
 ```bash
 # List all dependencies
 pipdeptree
@@ -308,6 +527,7 @@ pyinstaller --debug=all db_manager.py
 ## 📈 Future Optimizations
 
 ### Planned Improvements
+
 - [ ] **Profile-guided optimization** (PGO)
 - [ ] **Link-time optimization** (LTO)
 - [ ] **Custom Python build** with minimal features
@@ -315,6 +535,7 @@ pyinstaller --debug=all db_manager.py
 - [ ] **Modular executable** architecture
 
 ### Experimental Features
+
 - [ ] **WebAssembly compilation** for web deployment
 - [ ] **Docker containerization** for development
 - [ ] **Cross-compilation** for Linux/macOS

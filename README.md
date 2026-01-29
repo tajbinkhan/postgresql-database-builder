@@ -1,15 +1,16 @@
 # PostgreSQL Database Manager
 
 ![Python](https://img.shields.io/badge/python-v3.7+-blue.svg)
-![Platform](https://img.shields.io/badge/platform-windows-lightgrey.svg)
+![Platform](https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux-lightgrey.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![GUI](https://img.shields.io/badge/GUI-CustomTkinter-orange.svg)
 
-A modern, user-friendly PostgreSQL database management tool built with Python and CustomTkinter. Features a tabbed interface for database backup, restore operations, and complete history tracking.
+A modern, user-friendly PostgreSQL database management tool built with Python and CustomTkinter. Features a tabbed interface for database backup, restore operations, and complete history tracking. **Now supports Windows, macOS, and Linux!**
 
 ## ✨ Features
 
 ### 🎯 Core Functionality
+
 - **Database Backup & Restore** - Full PostgreSQL database dump and restore capabilities
 - **Tabbed Interface** - Separate tabs for Backup, Restore, and History operations
 - **Connection Testing** - Test database connections before operations
@@ -17,37 +18,58 @@ A modern, user-friendly PostgreSQL database management tool built with Python an
 - **Operation History** - Complete tracking of all database operations with timestamps
 
 ### 🎨 Modern UI
+
 - **Dark Theme** - Modern CustomTkinter dark interface
 - **Custom Fonts** - Google Fonts integration (Poppins) with intelligent fallbacks
 - **Responsive Design** - Scrollable content areas and proper button alignment
 - **Progress Indicators** - Real-time operation status and progress feedback
 
 ### 🔧 Advanced Features
+
 - **PostgreSQL Auto-Detection** - Automatic PostgreSQL installation checking
 - **Environment Management** - Smart PATH variable management and fixing
 - **Administrator Privileges** - Built-in UAC support for elevated operations
-- **Cross-Platform Ready** - Windows optimized with Unix compatibility
-- **One-Click Executable** - Standalone .exe file generation
+- **Cross-Platform Ready** - Windows, macOS, and Linux support
+- **One-Click Executable** - Standalone executable file generation
 
 ## 📸 Screenshots
 
 ### Main Interface - Backup Tab
+
 ![Backup Tab](screenshots/backup_tab.png)
 
 ### Restore Operations
+
 ![Restore Tab](screenshots/restore_tab.png)
 
 ### History Tracking
+
 ![History Tab](screenshots/history_tab.png)
 
 ## 🚀 Quick Start
 
 ### Option 1: Download Executable (Recommended)
+
+#### Windows
+
 1. Download the latest `PostgreSQL_Database_Manager.exe` from [Releases](../../releases)
 2. Right-click and select "Run as administrator"
 3. Start managing your PostgreSQL databases!
 
+#### macOS
+
+1. Download the latest `PostgreSQL_Database_Manager` (macOS) from [Releases](../../releases)
+2. Open Terminal and run: `chmod +x PostgreSQL_Database_Manager`
+3. Run with: `sudo ./PostgreSQL_Database_Manager`
+
+#### Linux
+
+1. Download the latest `PostgreSQL_Database_Manager` (Linux) from [Releases](../../releases)
+2. Open Terminal and run: `chmod +x PostgreSQL_Database_Manager`
+3. Run with: `sudo ./PostgreSQL_Database_Manager`
+
 ### Option 2: Run from Source
+
 ```bash
 # Clone the repository
 git clone https://github.com/tajbinkhan/postgresql-database-builder.git
@@ -57,23 +79,28 @@ cd postgresql-database-manager
 pip install customtkinter
 
 # Run the application
-python db_manager.py
+python db_manager.py  # Windows
+python3 db_manager.py  # macOS/Linux
 ```
 
 ## 📋 Requirements
 
 ### System Requirements
-- **Operating System**: Windows 7/8/10/11
+
+- **Operating System**: Windows 7/8/10/11, macOS 10.13+, or Linux (Ubuntu 18.04+, Fedora 30+, etc.)
 - **PostgreSQL**: Must be installed with command-line tools (pg_dump, pg_restore, psql)
 - **Python**: 3.7+ (if running from source)
 
 ### Python Dependencies
+
 ```
 customtkinter>=5.0.0
 ```
 
 ### PostgreSQL Tools
+
 The application requires PostgreSQL command-line tools to be installed and accessible:
+
 - `pg_dump` - For database backups
 - `pg_restore` - For database restores
 - `psql` - For connection testing
@@ -83,11 +110,15 @@ The application requires PostgreSQL command-line tools to be installed and acces
 ## 🛠️ Installation
 
 ### For End Users (Executable)
-1. **Download**: Get the latest `.exe` file from the [Releases](../../releases) page
+
+1. **Download**: Get the latest executable for your platform from the [Releases](../../releases) page
 2. **Install PostgreSQL**: Ensure PostgreSQL is installed on your system
-3. **Run**: Double-click the executable (will request administrator privileges)
+3. **Run**:
+   - **Windows**: Double-click the .exe (will request administrator privileges)
+   - **macOS/Linux**: Run `chmod +x PostgreSQL_Database_Manager` then `sudo ./PostgreSQL_Database_Manager`
 
 ### For Developers (Source)
+
 ```bash
 # Clone repository
 git clone https://github.com/tajbinkhan/postgresql-database-builder.git
@@ -95,7 +126,9 @@ cd postgresql-database-manager
 
 # Create virtual environment (recommended)
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # macOS/Linux
+# or
+venv\Scripts\activate  # Windows
 
 # Install dependencies
 pip install -r requirements.txt
@@ -107,6 +140,7 @@ python db_manager.py
 ## 📖 Usage Guide
 
 ### Database Backup
+
 1. Switch to the **Backup** tab
 2. Enter your **source database connection string**:
    ```
@@ -118,6 +152,7 @@ python db_manager.py
 6. Click **Start Backup**
 
 ### Database Restore
+
 1. Switch to the **Restore** tab
 2. Enter your **target database connection string**
 3. **Test Connection** to verify target database
@@ -126,6 +161,7 @@ python db_manager.py
 6. Click **Start Restore**
 
 ### View History
+
 1. Switch to the **History** tab
 2. View all **past operations** with timestamps
 3. **Filter by operation type** (Backup/Restore)
@@ -134,6 +170,7 @@ python db_manager.py
 ## 🔧 Building Executable
 
 ### Quick Build
+
 To create your own executable:
 
 ```bash
@@ -154,17 +191,20 @@ The executable will be created in the `dist/` folder with administrator privileg
 Our optimized build system includes multiple compression and optimization techniques:
 
 #### **Automatic Optimization**
+
 - **Python Bytecode Optimization** (`--optimize=2`) - Removes debug information and docstrings
 - **Unused Module Exclusion** - Automatically excludes test frameworks, email libraries, and unused modules
 - **Binary Stripping** - Removes debug symbols from compiled libraries
 - **Smart Compression** - Automatically detects and uses UPX compression when available
 
 #### **File Size Optimization Results**
+
 - **Before Optimization**: ~13+ MB
 - **After PyInstaller Optimization**: ~11.0 MB (15% reduction)
 - **After UPX Compression**: **~9.6 MB (26% total reduction)**
 
 #### **UPX Compression Setup**
+
 For maximum compression, install UPX compressor:
 
 ```bash
@@ -178,6 +218,7 @@ For maximum compression, install UPX compressor:
 ```
 
 #### **Build Process Features**
+
 - **Real-time Progress** - Live PyInstaller output during build
 - **Automatic Cleanup** - Removes temporary build files after completion
 - **Size Reporting** - Shows final executable size and compression ratio
@@ -185,7 +226,9 @@ For maximum compression, install UPX compressor:
 - **Cross-Platform Ready** - Optimized for Windows with Unix compatibility
 
 #### **Excluded Modules (for Size Optimization)**
+
 The build system automatically excludes these unused modules:
+
 ```
 tkinter.test, test, unittest, doctest, pdb, pydoc
 email, xml, urllib, http, ssl, socket, select
@@ -193,6 +236,7 @@ multiprocessing, concurrent
 ```
 
 #### **Technical Build Specifications**
+
 ```python
 # PyInstaller command generated:
 pyinstaller --onefile --windowed \
@@ -207,15 +251,18 @@ pyinstaller --onefile --windowed \
 ## 📦 Deployment & Distribution
 
 ### 🎯 Executable Distribution
+
 The optimized executable is perfect for distribution:
 
 #### **System Requirements for End Users**
+
 - **Operating System**: Windows 7/8/10/11 (32-bit or 64-bit)
 - **PostgreSQL**: Must be installed with command-line tools
 - **No Python Required**: Standalone executable includes all dependencies
 - **Administrator Access**: Required for PostgreSQL operations and PATH management
 
 #### **Distribution Checklist**
+
 - ✅ **File Size**: Optimized to ~9.6 MB (26% smaller than unoptimized)
 - ✅ **Dependencies**: All Python libraries bundled
 - ✅ **Security**: Code-signed executable (recommended for production)
@@ -225,12 +272,14 @@ The optimized executable is perfect for distribution:
 #### **Deployment Options**
 
 **Option 1: Direct Download**
+
 ```
 📁 dist/PostgreSQL_Database_Manager.exe (9.6 MB)
 └── Ready for immediate distribution
 ```
 
 **Option 2: Installer Package** (Future enhancement)
+
 ```
 📦 PostgreSQL_Database_Manager_Setup.exe
 ├── Application executable
@@ -239,6 +288,7 @@ The optimized executable is perfect for distribution:
 ```
 
 **Option 3: Portable Package**
+
 ```
 📁 PostgreSQL_Database_Manager_Portable/
 ├── PostgreSQL_Database_Manager.exe
@@ -249,12 +299,14 @@ The optimized executable is perfect for distribution:
 ### 🔐 Security Considerations
 
 #### **Administrator Privileges**
+
 - **Required**: For PostgreSQL operations and PATH management
 - **Implementation**: Windows UAC manifest (`app.manifest`)
 - **User Experience**: Single UAC prompt on startup
 - **Fallback**: Graceful degradation if admin rights denied
 
 #### **Data Security**
+
 - **Local Storage**: All data saved in user's Documents folder
 - **No Cloud**: No external data transmission
 - **Sanitized Logs**: Database credentials never stored in history
@@ -263,7 +315,9 @@ The optimized executable is perfect for distribution:
 ## ⚙️ Configuration
 
 ### Application Data Location
+
 All application data is stored in your Documents folder:
+
 ```
 📁 Documents/PostgreSQL Database Manager/
 ├── db_manager_settings.json    # User preferences and settings
@@ -271,14 +325,18 @@ All application data is stored in your Documents folder:
 ```
 
 ### Settings File
+
 The application creates `db_manager_settings.json` in the Documents folder to store:
+
 - Default connection strings
 - Preferred save locations
 - UI preferences
 - Font settings
 
 ### History File
+
 Operation history is stored in `db_operations_history.json` in the Documents folder:
+
 - Operation timestamps
 - Connection details (sanitized)
 - File paths and sizes
@@ -289,6 +347,7 @@ Operation history is stored in `db_operations_history.json` in the Documents fol
 ### Common Issues
 
 **PostgreSQL Not Found**
+
 ```
 ✅ Solution: The app will auto-detect and offer to fix PATH variables
 ✅ Manual Fix: Add PostgreSQL bin directory to system PATH
@@ -296,6 +355,7 @@ Operation history is stored in `db_operations_history.json` in the Documents fol
 ```
 
 **Connection Failed**
+
 ```
 ✅ Check: Database server is running
 ✅ Check: Connection string format
@@ -304,6 +364,7 @@ Operation history is stored in `db_operations_history.json` in the Documents fol
 ```
 
 **Permission Denied**
+
 ```
 ✅ Solution: Run as administrator (right-click → "Run as administrator")
 ✅ Alternative: Grant user PostgreSQL permissions
@@ -311,6 +372,7 @@ Operation history is stored in `db_operations_history.json` in the Documents fol
 ```
 
 **Font Issues**
+
 ```
 ✅ Install Poppins font from Google Fonts for best experience
 ✅ App includes fallback fonts (Inter, Segoe UI)
@@ -320,6 +382,7 @@ Operation history is stored in `db_operations_history.json` in the Documents fol
 ### Build System Troubleshooting
 
 **PyInstaller Issues**
+
 ```
 ❌ Problem: "PyInstaller not found"
 ✅ Solution: pip install pyinstaller
@@ -334,6 +397,7 @@ Operation history is stored in `db_operations_history.json` in the Documents fol
 ```
 
 **UPX Compression Issues**
+
 ```
 ❌ Problem: "UPX not found"
 ✅ Solution: Run install_upx.bat or download from https://upx.github.io/
@@ -349,6 +413,7 @@ Operation history is stored in `db_operations_history.json` in the Documents fol
 ```
 
 **Windows-Specific Issues**
+
 ```
 ❌ Problem: "Application won't start"
 ✅ Solution: Install Microsoft Visual C++ Redistributable
@@ -367,6 +432,7 @@ Operation history is stored in `db_operations_history.json` in the Documents fol
 ### Performance Optimization
 
 **Build Performance**
+
 ```
 🚀 Fast Build: Use build.bat for automated process
 🚀 Parallel Build: PyInstaller uses multiple cores automatically
@@ -374,6 +440,7 @@ Operation history is stored in `db_operations_history.json` in the Documents fol
 ```
 
 **Runtime Performance**
+
 ```
 🚀 Startup: ~2-3 seconds on modern systems
 🚀 Operations: Real-time PostgreSQL operations
@@ -381,6 +448,7 @@ Operation history is stored in `db_operations_history.json` in the Documents fol
 ```
 
 ### Error Logs
+
 - Application errors are displayed in real-time dialogs
 - Check PostgreSQL logs for database-specific issues
 - Use "Test Connection" to diagnose connection problems
@@ -388,17 +456,20 @@ Operation history is stored in `db_operations_history.json` in the Documents fol
 ## 📚 Documentation
 
 ### 📖 User Documentation
+
 - **[README.md](README.md)** - Main project documentation and user guide
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and feature updates
 - **[LICENSE](LICENSE)** - MIT License terms
 
 ### 🛠️ Developer Documentation
+
 - **[BUILD_GUIDE.md](BUILD_GUIDE.md)** - Comprehensive build system and optimization guide
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** - Production deployment and distribution guide
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines and development setup
 - **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** - Project organization and file structure
 
 ### 🎯 Quick Links
+
 - **Build System**: See [BUILD_GUIDE.md](BUILD_GUIDE.md) for detailed optimization instructions
 - **Deployment**: See [DEPLOYMENT.md](DEPLOYMENT.md) for production deployment workflows
 - **Issues**: Report bugs on [GitHub Issues](../../issues)
@@ -415,6 +486,7 @@ We welcome contributions! Here's how to get started:
 5. **Open** a Pull Request
 
 ### Development Setup
+
 ```bash
 git clone https://github.com/tajbinkhan/postgresql-database-builder.git
 cd postgresql-database-manager
@@ -425,6 +497,7 @@ pip install -r requirements-dev.txt  # For development tools
 ```
 
 ### Code Style
+
 - Follow PEP 8 guidelines
 - Use meaningful variable names
 - Add docstrings to functions
@@ -450,6 +523,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🗺️ Roadmap
 
 ### Version 2.0 (Planned)
+
 - [ ] Multi-database support (MySQL, SQLite)
 - [ ] Scheduled backup automation
 - [ ] Cloud storage integration
@@ -458,6 +532,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] User access management
 
 ### Version 1.1 (In Progress)
+
 - [x] Administrator privilege support
 - [x] Real-time build status
 - [x] Enhanced error handling
